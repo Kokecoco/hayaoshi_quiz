@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <title>早押しボタン - 親機</title>
+</head>
+
+<body>
+  <h1>早押しボタン 親機</h1>
+  <button id="connect-button">接続</button>
+  <button id="reset-button">リセット</button>
+  <div id="status"></div>
+
+  <script>
+    let firstResponder = null; // 最初にボタンを押した子機
+    let characteristic; // 子機との通信に使用するキャラクタリスティック
+    let server; // GATTサーバー
+
+    // 接続ボタンがクリックされたら接続開始
+    document.getElementById('connect-button').addEventListener('click', async () => {
+      try {
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{services: ['0000180A-0000-1000-8000-00805f9b34fb']}] // デバイス情報サービスのUUID
+        });
+
+        server = await device.gatt.connect();
+        const service = await server.getPrimaryService('0000180A-0000-1000-8000-00805f9b34fb'); // デバイス情報サービス
+        characteristic = await service.getCharacteristic('00002A29-0000-1000-8000-00805f9b34fb'); // Manufacturer Name StringのUUID
+
+        // 通知を受け取る設定
+        await characteristic.startNotifications();
+        characteristic.addEventListener('characteristicvaluechanged', event => {
+          const value = new TextDecoder().decode(event.target.value);
+          if (!firstResponder) {
+            firstResponder = value; // 最初に押した子機を記録
+            document.getElementById('status').textContent = `最初に押したのは ${value} です！`;
+          } else {
+            document.getElementById('status').textContent = `${value} は既に他の人が押した後です。`;
+          }
+        });
+
+        // 接続切断イベントリスナー
+        server.addEventListener('gattserverdisconnected', () => {
+          document.getElementById('status').textContent = '子機が切断されました。';
+          firstResponder = null; // 状態をリセット
+        });
+
+        document.getElementById('status').textContent = '接続しました。待機中...';
+      } catch (error) {
+        console.error(error);
+        document.getElementById('status').textContent = '接続に失敗しました: ' + error;
+      }
+    });
+
+    // リセットボタンがクリックされたら状態をリセット
+    document.getElementById('reset-button').addEventListener('click', () => {
+      firstResponder = null;
+      document.getElementById('status').textContent = 'リセットしました。次の問題に進めます。';
+    });
+  </script>
+</body>
+
+</html>
