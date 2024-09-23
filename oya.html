@@ -1,77 +1,84 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <title>早押しボタン - 親機</title>
-  </head>
 
-  <body>
-    <h1>早押しボタン 親機</h1>
-    <button id="connect-button">接続</button>
-    <button id="reset-button">リセット</button>
-    <div id="status"></div>
+<head>
+  <meta charset="UTF-8">
+  <title>早押しボタン - 親機</title>
+</head>
 
-    <script>
-      let firstResponder = null; // 最初にボタンを押した子機
-      let characteristic; // 子機との通信に使用するキャラクタリスティック
-      let server; // GATTサーバー
+<body>
+  <h1>早押しボタン 親機</h1>
+  <button id="connect-button">接続</button>
+  <button id="reset-button">リセット</button>
+  <div id="status"></div>
 
-      // 接続ボタンがクリックされたら接続開始
-      document
-        .getElementById("connect-button")
-        .addEventListener("click", async () => {
-          try {
-            const device = await navigator.bluetooth.requestDevice({
-              filters: [{ services: ["0000180a-0000-1000-8000-00805f9b34fb"] }], // デバイス情報サービスのUUID
-            });
+  <script>
+    let firstResponder = null; // 最初にボタンを押した子機
+    let characteristic; // 子機との通信に使用するキャラクタリスティック
+    let server; // GATTサーバー
 
-            server = await device.gatt.connect();
-            const service = await server.getPrimaryService(
-              "0000180a-0000-1000-8000-00805f9b34fb",
-            ); // デバイス情報サービス
-            characteristic = await service.getCharacteristic(
-              "00002a29-0000-1000-8000-00805f9b34fb",
-            ); // Manufacturer Name StringのUUID
+    // 音声ファイルの定義
+    const buzzerSound = new Audio('assets/audio/Quiz-Buzzer02-1.mp3');
+    const correctSound = new Audio('assets/audio/correct1.mp3');
+    const wrongSound = new Audio('assets/audio/Quiz-Wrong_Buzzer02-1.mp3');
 
-            // 通知を受け取る設定
-            await characteristic.startNotifications();
-            characteristic.addEventListener(
-              "characteristicvaluechanged",
-              (event) => {
-                const value = new TextDecoder().decode(event.target.value);
-                if (!firstResponder) {
-                  firstResponder = value; // 最初に押した子機を記録
-                  document.getElementById("status").textContent =
-                    `最初に押したのは ${value} です！`;
-                } else {
-                  document.getElementById("status").textContent =
-                    `${value} は既に他の人が押した後です。`;
-                }
-              },
-            );
+    // 接続ボタンがクリックされたら接続開始
+    document.getElementById('connect-button').addEventListener('click', async () => {
+      try {
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{services: ['device_information']}] // デバイス情報サービスのUUID
+        });
 
-            // 接続切断イベントリスナー
-            server.addEventListener("gattserverdisconnected", () => {
-              document.getElementById("status").textContent =
-                "子機が切断されました。";
-              firstResponder = null; // 状態をリセット
-            });
+        server = await device.gatt.connect();
+        const service = await server.getPrimaryService('device_information'); // デバイス情報サービス
+        characteristic = await service.getCharacteristic('00002a29-0000-1000-8000-00805f9b34fb'); // Manufacturer Name StringのUUID
 
-            document.getElementById("status").textContent =
-              "接続しました。待機中...";
-          } catch (error) {
-            console.error(error);
-            document.getElementById("status").textContent =
-              "接続に失敗しました: " + error;
+        // 通知を受け取る設定
+        await characteristic.startNotifications();
+        characteristic.addEventListener('characteristicvaluechanged', event => {
+          const value = new TextDecoder().decode(event.target.value);
+
+          // 早押し音を鳴らす
+          buzzerSound.play();
+
+          if (!firstResponder) {
+            firstResponder = value; // 最初に押した子機を記録
+            document.getElementById('status').textContent = `最初に押したのは ${value} です！`;
+
+            // 正解か不正解の判定（今回はランダムな例、実際には正解条件を入れる）
+            const isCorrect = Math.random() < 0.5; // ランダムに正解/不正解を判定
+            if (isCorrect) {
+              document.getElementById('status').textContent += ' 正解！';
+              correctSound.play(); // 正解音を再生
+            } else {
+              document.getElementById('status').textContent += ' 不正解！';
+              wrongSound.play(); // 不正解音を再生
+            }
+          } else {
+            document.getElementById('status').textContent = `${value} は既に他の人が押した後です。`;
+            wrongSound.play(); // 不正解音を再生
           }
         });
 
-      // リセットボタンがクリックされたら状態をリセット
-      document.getElementById("reset-button").addEventListener("click", () => {
-        firstResponder = null;
-        document.getElementById("status").textContent =
-          "リセットしました。次の問題に進めます。";
-      });
-    </script>
-  </body>
+        // 接続切断イベントリスナー
+        server.addEventListener('gattserverdisconnected', () => {
+          document.getElementById('status').textContent = '子機が切断されました。';
+          firstResponder = null; // 状態をリセット
+        });
+
+        document.getElementById('status').textContent = '接続しました。待機中...';
+      } catch (error) {
+        console.error(error);
+        document.getElementById('status').textContent = '接続に失敗しました: ' + error;
+      }
+    });
+
+    // リセットボタンがクリックされたら状態をリセット
+    document.getElementById('reset-button').addEventListener('click', () => {
+      firstResponder = null;
+      document.getElementById('status').textContent = 'リセットしました。次の問題に進めます。';
+    });
+  </script>
+</body>
+
 </html>

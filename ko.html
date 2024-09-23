@@ -1,46 +1,41 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <title>早押しボタン - 子機</title>
-  </head>
 
-  <body>
-    <h1>早押しボタン 子機</h1>
-    <button id="send-button">ボタンを押して送信</button>
-    <div id="status"></div>
+<head>
+  <meta charset="UTF-8">
+  <title>早押しボタン - 子機</title>
+</head>
 
-    <script>
-      let characteristic; // 親機との通信に使用するキャラクタリスティック
+<body>
+  <h1>早押しボタン 子機</h1>
+  <button id="send-button">ボタンを押して送信</button>
+  <div id="status"></div>
 
-      // 送信ボタンがクリックされたら通信開始
-      document
-        .getElementById("send-button")
-        .addEventListener("click", async () => {
-          try {
-            const device = await navigator.bluetooth.requestDevice({
-              filters: [{ services: ["0000180a-0000-1000-8000-00805f9b34fb"] }], // デバイス情報サービスのUUID
-            });
+  <script>
+    let characteristic; // 親機との通信に使用するキャラクタリスティック
 
-            const server = await device.gatt.connect();
-            const service = await server.getPrimaryService(
-              "0000180a-0000-1000-8000-00805f9b34fb",
-            ); // デバイス情報サービス
-            characteristic = await service.getCharacteristic(
-              "00002a29-0000-1000-8000-00805f9b34fb",
-            ); // Manufacturer Name StringのUUID
-
-            // デバイス名を送信
-            const value = new TextEncoder().encode(device.name);
-            await characteristic.writeValue(value);
-            document.getElementById("status").textContent =
-              "ボタンが押されました: " + device.name;
-          } catch (error) {
-            console.error(error);
-            document.getElementById("status").textContent =
-              "送信に失敗しました: " + error;
-          }
+    // 送信ボタンがクリックされたら通信開始
+    document.getElementById('send-button').addEventListener('click', async () => {
+      try {
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{services: ['device_information']}] // デバイス情報サービスのUUID
         });
-    </script>
-  </body>
+
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService('device_information'); // デバイス情報サービス
+        characteristic = await service.getCharacteristic('00002a29-0000-1000-8000-00805f9b34fb'); // Manufacturer Name StringのUUID（小文字）
+
+        // デバイス名を送信
+        const value = new TextEncoder().encode(device.name);
+        await characteristic.writeValue(value);
+        document.getElementById('status').textContent = 'ボタンが押されました: ' + device.name;
+
+      } catch (error) {
+        console.error(error);
+        document.getElementById('status').textContent = '送信に失敗しました: ' + error;
+      }
+    });
+  </script>
+</body>
+
 </html>
