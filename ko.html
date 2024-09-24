@@ -1,41 +1,52 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>早押しクイズ - 子機</title>
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <title>早押しボタン - 子機</title>
-</head>
+  <body>
+    <h1>早押しクイズ 子機</h1>
+    <input type="text" id="name-input" placeholder="名前を入力してください" />
+    <button id="buzz-btn" disabled>早押し！</button>
 
-<body>
-  <h1>早押しボタン 子機</h1>
-  <button id="send-button">ボタンを押して送信</button>
-  <div id="status"></div>
+    <script>
+      const buzzBtn = document.getElementById("buzz-btn");
+      const nameInput = document.getElementById("name-input");
 
-  <script>
-    let characteristic; // 親機との通信に使用するキャラクタリスティック
+      let socket = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
 
-    // 送信ボタンがクリックされたら通信開始
-    document.getElementById('send-button').addEventListener('click', async () => {
-      try {
-        const device = await navigator.bluetooth.requestDevice({
-          filters: [{services: ['device_information']}] // デバイス情報サービスのUUID
-        });
+      nameInput.addEventListener("input", () => {
+        buzzBtn.disabled = !nameInput.value;
+      });
 
-        const server = await device.gatt.connect();
-        const service = await server.getPrimaryService('device_information'); // デバイス情報サービス
-        characteristic = await service.getCharacteristic('00002a29-0000-1000-8000-00805f9b34fb'); // Manufacturer Name StringのUUID（小文字）
+      buzzBtn.addEventListener("click", () => {
+        socket.send(
+          JSON.stringify({
+            type: "buzz",
+            name: nameInput.value,
+          }),
+        );
+      });
 
-        // デバイス名を送信
-        const value = new TextEncoder().encode(device.name);
-        await characteristic.writeValue(value);
-        document.getElementById('status').textContent = 'ボタンが押されました: ' + device.name;
+      socket.onmessage = function (event) {
+        const message = JSON.parse(event.data);
 
-      } catch (error) {
-        console.error(error);
-        document.getElementById('status').textContent = '送信に失敗しました: ' + error;
-      }
-    });
-  </script>
-</body>
-
+        if (message.type === "result") {
+          if (
+            message.result === "correct" &&
+            message.name === nameInput.value
+          ) {
+            alert("正解！");
+          } else if (
+            message.result === "wrong" &&
+            message.name === nameInput.value
+          ) {
+            alert("不正解...");
+          }
+        }
+      };
+    </script>
+  </body>
 </html>
