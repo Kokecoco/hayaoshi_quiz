@@ -16,6 +16,8 @@
       const nameInput = document.getElementById("name-input");
 
       let socket = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
+      console.log("ソケットに接続しました");
+      console.log(socket);
 
       nameInput.addEventListener("input", () => {
         buzzBtn.disabled = !nameInput.value;

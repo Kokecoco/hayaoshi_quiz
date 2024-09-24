@@ -33,6 +33,8 @@
       let currentWinner = null;
 
       let socket = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
+      console.log("WebSocketに接続しました");
+      console.log(socket);
 
       socket.onmessage = function (event) {
         const message = JSON.parse(event.data);
@@ -48,6 +50,7 @@
 
       startBtn.addEventListener("click", () => {
         socket.send(JSON.stringify({ type: "start" }));
+        console.log("startを送信しました");
         winnerDisplay.textContent = "待機中...";
         correctBtn.disabled = true;
         wrongBtn.disabled = true;
