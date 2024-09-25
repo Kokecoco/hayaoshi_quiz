@@ -3,68 +3,62 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>早押しクイズ - 親機</title>
+    <title>親機 - 早押しクイズ</title>
   </head>
 
   <body>
-    <h1>早押しクイズ 親機</h1>
-    <button id="startBtn">クイズ開始</button>
+    <h1>早押しクイズ - 親機</h1>
+    <button id="startBtn">スタート</button>
     <audio id="buzzSound" src="assets/audio/Quiz-Buzzer02-1.mp3"></audio>
     <audio id="correctSound" src="assets/audio/correct1.mp3"></audio>
     <audio id="wrongSound" src="assets/audio/Quiz-Wrong_Buzzer02-1.mp3"></audio>
 
     <script>
-      const startBtn = document.getElementById("startBtn");
+      let peerConnection;
+      let dataChannel;
+      const socket = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
       const buzzSound = document.getElementById("buzzSound");
       const correctSound = document.getElementById("correctSound");
       const wrongSound = document.getElementById("wrongSound");
-      let peerConnection;
-      let dataChannel;
 
-      const signalingServerUrl = "https://hayaoshi-quiz-backend.onrender.com"; // シグナリングサーバーURL
-      const socket = new WebSocket(signalingServerUrl);
-
-      socket.onmessage = (message) => {
-        const data = JSON.parse(message.data);
-        if (data.type === "answer") {
-          buzzSound.play();
-          console.log(`${data.name} さんが早押しに成功しました！`);
-        }
+      socket.onopen = () => {
+        console.log("WebSocket connected.");
       };
 
-      startBtn.addEventListener("click", async () => {
-        peerConnection = new RTCPeerConnection();
-        dataChannel = peerConnection.createDataChannel("quiz");
+      document
+        .getElementById("startBtn")
+        .addEventListener("click", async () => {
+          peerConnection = new RTCPeerConnection();
+          dataChannel = peerConnection.createDataChannel("quiz");
+          dataChannel.onopen = () => {
+            console.log("Data channel is open.");
+          };
+          dataChannel.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === "buzz") {
+              buzzSound.play();
+              console.log(`${data.name}が早押ししました！`);
+              // 正解・不正解をここで判断して、音を鳴らす
+              const result = confirm(`${data.name}は正解ですか？`);
+              if (result) {
+                correctSound.play();
+                dataChannel.send(JSON.stringify({ type: "correct" }));
+              } else {
+                wrongSound.play();
+                dataChannel.send(JSON.stringify({ type: "wrong" }));
+              }
+            }
+          };
 
-        dataChannel.onopen = () => {
-          console.log("Data channel is open and ready to be used.");
-        };
-
-        dataChannel.onmessage = (event) => {
-          const receivedData = JSON.parse(event.data);
-          if (receivedData.type === "buzz") {
-            buzzSound.play();
-            console.log(`早押し！ ${receivedData.name} が押しました`);
-            // 正解か不正解かの処理を追加
-            const isCorrect = confirm(
-              `${receivedData.name} さんの回答は正解ですか？`,
-            );
-            const responseMessage = { type: isCorrect ? "correct" : "wrong" };
-            dataChannel.send(JSON.stringify(responseMessage));
-            if (isCorrect) correctSound.play();
-            else wrongSound.play();
-          }
-        };
-
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-        socket.send(
-          JSON.stringify({
-            type: "offer",
-            offer: peerConnection.localDescription,
-          }),
-        );
-      });
+          const offer = await peerConnection.createOffer();
+          await peerConnection.setLocalDescription(offer);
+          socket.send(
+            JSON.stringify({
+              type: "offer",
+              offer: peerConnection.localDescription,
+            }),
+          );
+        });
 
       socket.onmessage = async (message) => {
         const data = JSON.parse(message.data);

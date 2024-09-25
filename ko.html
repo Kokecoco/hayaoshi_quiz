@@ -3,26 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>早押しクイズ - 子機</title>
+    <title>子機 - 早押しクイズ</title>
   </head>
 
   <body>
-    <h1>早押しクイズ 子機</h1>
-    <input type="text" id="nameInput" placeholder="名前を入力してください" />
-    <button id="buzzBtn">早押し</button>
+    <h1>早押しクイズ - 子機</h1>
+    <input type="text" id="nameInput" placeholder="名前を入力" />
+    <button id="buzzBtn" disabled>早押し！</button>
 
     <script>
-      const buzzBtn = document.getElementById("buzzBtn");
-      const nameInput = document.getElementById("nameInput");
       let peerConnection;
       let dataChannel;
+      const socket = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
 
-      const signalingServerUrl = "https://hayaoshi-quiz-backend.onrender.com"; // シグナリングサーバーURL
-      const socket = new WebSocket(signalingServerUrl);
+      socket.onopen = () => {
+        console.log("WebSocket connected.");
+      };
 
-      buzzBtn.addEventListener("click", () => {
+      document.getElementById("buzzBtn").addEventListener("click", () => {
         if (dataChannel && dataChannel.readyState === "open") {
-          const buzzMessage = { type: "buzz", name: nameInput.value };
+          const buzzMessage = {
+            type: "buzz",
+            name: document.getElementById("nameInput").value,
+          };
           dataChannel.send(JSON.stringify(buzzMessage));
         } else {
           console.error("Data channel is not open yet.");
@@ -36,7 +39,8 @@
           peerConnection.ondatachannel = (event) => {
             dataChannel = event.channel;
             dataChannel.onopen = () => {
-              console.log("Data channel is open and ready to be used.");
+              console.log("Data channel is open.");
+              document.getElementById("buzzBtn").disabled = false; // ボタンを有効化
             };
             dataChannel.onmessage = (event) => {
               const response = JSON.parse(event.data);
