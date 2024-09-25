@@ -15,38 +15,68 @@
       const buzzBtn = document.getElementById("buzz-btn");
       const nameInput = document.getElementById("name-input");
 
-      let socket = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
-      console.log("ソケットに接続しました");
-      console.log(socket);
+      let peerConnection = new RTCPeerConnection();
+      let dataChannel;
+
+      // シグナリングサーバーと接続
+      let signalingSocket = new WebSocket(
+        "wss://hayaoshi-quiz-backend.onrender.com",
+      );
+
+      signalingSocket.onopen = async () => {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        signalingSocket.send(JSON.stringify({ type: "offer", offer }));
+      };
+
+      signalingSocket.onmessage = async (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === "answer") {
+          await peerConnection.setRemoteDescription(
+            new RTCSessionDescription(message.answer),
+          );
+        } else if (message.type === "candidate") {
+          await peerConnection.addIceCandidate(
+            new RTCIceCandidate(message.candidate),
+          );
+        }
+      };
+
+      peerConnection.ondatachannel = (event) => {
+        dataChannel = event.channel;
+        dataChannel.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          if (message.type === "result") {
+            if (
+              message.result === "correct" &&
+              message.name === nameInput.value
+            ) {
+              alert("正解！");
+            } else if (
+              message.result === "wrong" &&
+              message.name === nameInput.value
+            ) {
+              alert("不正解...");
+            }
+          }
+        };
+      };
 
       nameInput.addEventListener("input", () => {
         buzzBtn.disabled = !nameInput.value;
       });
 
       buzzBtn.addEventListener("click", () => {
-        socket.send(
-          JSON.stringify({
-            type: "buzz",
-            name: nameInput.value,
-          }),
-        );
+        const buzzMessage = { type: "buzz", name: nameInput.value };
+        dataChannel.send(JSON.stringify(buzzMessage));
       });
 
-      socket.onmessage = function (event) {
-        const message = JSON.parse(event.data);
-
-        if (message.type === "result") {
-          if (
-            message.result === "correct" &&
-            message.name === nameInput.value
-          ) {
-            alert("正解！");
-          } else if (
-            message.result === "wrong" &&
-            message.name === nameInput.value
-          ) {
-            alert("不正解...");
-          }
+      // ICE candidateの送信
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          signalingSocket.send(
+            JSON.stringify({ type: "candidate", candidate: event.candidate }),
+          );
         }
       };
     </script>

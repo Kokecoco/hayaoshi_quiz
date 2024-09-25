@@ -32,13 +32,41 @@
 
       let currentWinner = null;
 
-      let socket = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
-      console.log("WebSocketに接続しました");
-      console.log(socket);
+      let peerConnection = new RTCPeerConnection();
+      let dataChannel = peerConnection.createDataChannel("quizChannel");
 
-      socket.onmessage = function (event) {
+      // シグナリングサーバーと接続
+      let signalingSocket = new WebSocket(
+        "wss://hayaoshi-quiz-backend.onrender.com",
+      );
+
+      signalingSocket.onmessage = async (event) => {
         const message = JSON.parse(event.data);
+        if (message.type === "offer") {
+          await peerConnection.setRemoteDescription(
+            new RTCSessionDescription(message.offer),
+          );
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+          signalingSocket.send(JSON.stringify({ type: "answer", answer }));
+        } else if (message.type === "candidate") {
+          await peerConnection.addIceCandidate(
+            new RTCIceCandidate(message.candidate),
+          );
+        }
+      };
 
+      // ICE candidateの送信
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          signalingSocket.send(
+            JSON.stringify({ type: "candidate", candidate: event.candidate }),
+          );
+        }
+      };
+
+      dataChannel.onmessage = (event) => {
+        const message = JSON.parse(event.data);
         if (message.type === "buzz") {
           buzzerSound.play();
           currentWinner = message.name;
@@ -49,34 +77,30 @@
       };
 
       startBtn.addEventListener("click", () => {
-        socket.send(JSON.stringify({ type: "start" }));
-        console.log("startを送信しました");
         winnerDisplay.textContent = "待機中...";
         correctBtn.disabled = true;
         wrongBtn.disabled = true;
       });
 
       correctBtn.addEventListener("click", () => {
-        socket.send(
-          JSON.stringify({
-            type: "result",
-            result: "correct",
-            name: currentWinner,
-          }),
-        );
+        const resultMessage = {
+          type: "result",
+          result: "correct",
+          name: currentWinner,
+        };
+        dataChannel.send(JSON.stringify(resultMessage));
         correctSound.play();
         correctBtn.disabled = true;
         wrongBtn.disabled = true;
       });
 
       wrongBtn.addEventListener("click", () => {
-        socket.send(
-          JSON.stringify({
-            type: "result",
-            result: "wrong",
-            name: currentWinner,
-          }),
-        );
+        const resultMessage = {
+          type: "result",
+          result: "wrong",
+          name: currentWinner,
+        };
+        dataChannel.send(JSON.stringify(resultMessage));
         wrongSound.play();
         correctBtn.disabled = true;
         wrongBtn.disabled = true;
