@@ -25,7 +25,7 @@
           const buzzMessage = { type: "buzz", name: nameInput.value };
           dataChannel.send(JSON.stringify(buzzMessage));
         } else {
-          console.error("Data channel is not open.");
+          console.error("Data channel is not open yet.");
         }
       });
 
@@ -35,6 +35,9 @@
           peerConnection = new RTCPeerConnection();
           peerConnection.ondatachannel = (event) => {
             dataChannel = event.channel;
+            dataChannel.onopen = () => {
+              console.log("Data channel is open and ready to be used.");
+            };
             dataChannel.onmessage = (event) => {
               const response = JSON.parse(event.data);
               if (response.type === "correct") {

@@ -1,68 +1,79 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>早押しクイズ - 親機</title>
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>早押しクイズ - 親機</title>
-</head>
+  <body>
+    <h1>早押しクイズ 親機</h1>
+    <button id="startBtn">クイズ開始</button>
+    <audio id="buzzSound" src="assets/audio/Quiz-Buzzer02-1.mp3"></audio>
+    <audio id="correctSound" src="assets/audio/correct1.mp3"></audio>
+    <audio id="wrongSound" src="assets/audio/Quiz-Wrong_Buzzer02-1.mp3"></audio>
 
-<body>
-  <h1>早押しクイズ 親機</h1>
-  <button id="startBtn">クイズ開始</button>
-  <audio id="buzzSound" src="assets/audio/Quiz-Buzzer02-1.mp3"></audio>
-  <audio id="correctSound" src="assets/audio/correct1.mp3"></audio>
-  <audio id="wrongSound" src="assets/audio/Quiz-Wrong_Buzzer02-1.mp3"></audio>
+    <script>
+      const startBtn = document.getElementById("startBtn");
+      const buzzSound = document.getElementById("buzzSound");
+      const correctSound = document.getElementById("correctSound");
+      const wrongSound = document.getElementById("wrongSound");
+      let peerConnection;
+      let dataChannel;
 
-  <script>
-    const startBtn = document.getElementById('startBtn');
-    const buzzSound = document.getElementById('buzzSound');
-    const correctSound = document.getElementById('correctSound');
-    const wrongSound = document.getElementById('wrongSound');
-    let peerConnection;
-    let dataChannel;
+      const signalingServerUrl = "https://hayaoshi-quiz-backend.onrender.com"; // シグナリングサーバーURL
+      const socket = new WebSocket(signalingServerUrl);
 
-    const signalingServerUrl = 'https://hayaoshi-quiz-backend.onrender.com'; // シグナリングサーバーURL
-    const socket = new WebSocket(signalingServerUrl);
-
-    socket.onmessage = (message) => {
-      const data = JSON.parse(message.data);
-      if (data.type === 'answer') {
-        buzzSound.play();
-        console.log(`${data.name} さんが早押しに成功しました！`);
-      }
-    };
-
-    startBtn.addEventListener('click', async () => {
-      peerConnection = new RTCPeerConnection();
-      dataChannel = peerConnection.createDataChannel("quiz");
-
-      dataChannel.onmessage = (event) => {
-        const receivedData = JSON.parse(event.data);
-        if (receivedData.type === 'buzz') {
+      socket.onmessage = (message) => {
+        const data = JSON.parse(message.data);
+        if (data.type === "answer") {
           buzzSound.play();
-          console.log(`早押し！ ${receivedData.name} が押しました`);
-          // 正解か不正解かの処理を追加
-          const isCorrect = confirm(`${receivedData.name} さんの回答は正解ですか？`);
-          const responseMessage = {type: isCorrect ? 'correct' : 'wrong'};
-          dataChannel.send(JSON.stringify(responseMessage));
-          if (isCorrect) correctSound.play();
-          else wrongSound.play();
+          console.log(`${data.name} さんが早押しに成功しました！`);
         }
       };
 
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
-      socket.send(JSON.stringify({type: 'offer', offer: peerConnection.localDescription}));
-    });
+      startBtn.addEventListener("click", async () => {
+        peerConnection = new RTCPeerConnection();
+        dataChannel = peerConnection.createDataChannel("quiz");
 
-    socket.onmessage = async (message) => {
-      const data = JSON.parse(message.data);
-      if (data.type === 'answer') {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-      }
-    };
-  </script>
-</body>
+        dataChannel.onopen = () => {
+          console.log("Data channel is open and ready to be used.");
+        };
 
+        dataChannel.onmessage = (event) => {
+          const receivedData = JSON.parse(event.data);
+          if (receivedData.type === "buzz") {
+            buzzSound.play();
+            console.log(`早押し！ ${receivedData.name} が押しました`);
+            // 正解か不正解かの処理を追加
+            const isCorrect = confirm(
+              `${receivedData.name} さんの回答は正解ですか？`,
+            );
+            const responseMessage = { type: isCorrect ? "correct" : "wrong" };
+            dataChannel.send(JSON.stringify(responseMessage));
+            if (isCorrect) correctSound.play();
+            else wrongSound.play();
+          }
+        };
+
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        socket.send(
+          JSON.stringify({
+            type: "offer",
+            offer: peerConnection.localDescription,
+          }),
+        );
+      });
+
+      socket.onmessage = async (message) => {
+        const data = JSON.parse(message.data);
+        if (data.type === "answer") {
+          await peerConnection.setRemoteDescription(
+            new RTCSessionDescription(data.answer),
+          );
+        }
+      };
+    </script>
+  </body>
 </html>
