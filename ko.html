@@ -1,70 +1,59 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>子機 - 早押しクイズ</title>
-  </head>
 
-  <body>
-    <h1>早押しクイズ - 子機</h1>
-    <input type="text" id="nameInput" placeholder="名前を入力" />
-    <button id="buzzBtn" disabled>早押し！</button>
+<head>
+  <meta charset="UTF-8">
+  <title>子機</title>
+</head>
 
-    <script>
-      let peerConnection;
-      let dataChannel;
-      const socket = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
+<body>
+  <h1>早押しクイズ - 子機</h1>
+  <button id="pressButton" disabled>ボタンを押す</button>
 
-      socket.onopen = () => {
-        console.log("WebSocket connected.");
-      };
+  <script>
+    const signalingServerUrl = "wss://hayaoshi-quiz-backend.onrender.com/";
+    let remoteConnection;
 
-      document.getElementById("buzzBtn").addEventListener("click", () => {
-        if (dataChannel && dataChannel.readyState === "open") {
-          const buzzMessage = {
-            type: "buzz",
-            name: document.getElementById("nameInput").value,
+    document.getElementById("pressButton").addEventListener("click", () => {
+      if (dataChannel && dataChannel.readyState === "open") {
+        dataChannel.send("pressed");
+      }
+    });
+
+    const ws = new WebSocket(signalingServerUrl);
+    ws.onopen = () => {
+      console.log("WebSocket connection established.");
+    };
+
+    // WebSocketでOfferを受信
+    ws.onmessage = async (message) => {
+      const data = JSON.parse(message.data);
+      if (data.offer) {
+        remoteConnection = new RTCPeerConnection();
+
+        remoteConnection.onicecandidate = (event) => {
+          if (event.candidate) {
+            ws.send(JSON.stringify({candidate: event.candidate}));
+          }
+        };
+
+        remoteConnection.ondatachannel = (event) => {
+          dataChannel = event.channel;
+          dataChannel.onopen = () => {
+            console.log("DataChannel is open");
+            document.getElementById("pressButton").disabled = false;
           };
-          dataChannel.send(JSON.stringify(buzzMessage));
-        } else {
-          console.error("Data channel is not open yet.");
-        }
-      });
+        };
 
-      socket.onmessage = async (message) => {
-        const data = JSON.parse(message.data);
-        if (data.type === "offer") {
-          peerConnection = new RTCPeerConnection();
-          peerConnection.ondatachannel = (event) => {
-            dataChannel = event.channel;
-            dataChannel.onopen = () => {
-              console.log("Data channel is open.");
-              document.getElementById("buzzBtn").disabled = false; // ボタンを有効化
-            };
-            dataChannel.onmessage = (event) => {
-              const response = JSON.parse(event.data);
-              if (response.type === "correct") {
-                alert("正解です！");
-              } else if (response.type === "wrong") {
-                alert("不正解です！");
-              }
-            };
-          };
+        await remoteConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+        const answer = await remoteConnection.createAnswer();
+        await remoteConnection.setLocalDescription(answer);
+        ws.send(JSON.stringify({answer}));
+      } else if (data.candidate) {
+        await remoteConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+      }
+    };
+  </script>
+</body>
 
-          await peerConnection.setRemoteDescription(
-            new RTCSessionDescription(data.offer),
-          );
-          const answer = await peerConnection.createAnswer();
-          await peerConnection.setLocalDescription(answer);
-          socket.send(
-            JSON.stringify({
-              type: "answer",
-              answer: peerConnection.localDescription,
-            }),
-          );
-        }
-      };
-    </script>
-  </body>
 </html>
