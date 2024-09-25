@@ -51,7 +51,11 @@
           };
 
           ws.onmessage = async (message) => {
-            const data = JSON.parse(message.data);
+            // Blobをテキストに変換してからJSONにパース
+            const blob = message.data;
+            const text = await blob.text();
+            const data = JSON.parse(text);
+
             if (data.answer) {
               await localConnection.setRemoteDescription(
                 new RTCSessionDescription(data.answer),
