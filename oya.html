@@ -1,98 +1,58 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>親機 - 早押しクイズ</title>
-  </head>
 
-  <body>
-    <h1>早押しクイズ 親機</h1>
+<head>
+  <meta charset="UTF-8">
+  <title>早押しクイズ 親機</title>
+</head>
 
-    <button id="startButton">接続開始</button>
-    <button id="buzzerButton" disabled>早押しボタン</button>
-    <button id="correctButton">正解</button>
-    <button id="wrongButton">不正解</button>
+<body>
+  <h1>早押しクイズ 親機</h1>
+  <button id="startConnection">接続開始</button>
+  <button id="correctButton">正解</button>
+  <button id="wrongButton">不正解</button>
+  <button id="resetButton">リセット</button>
+  <p id="status"></p>
 
-    <audio id="buzzerSound" src="assets/audio/Quiz-Buzzer02-1.mp3"></audio>
-    <audio id="correctSound" src="assets/audio/correct1.mp3"></audio>
-    <audio id="wrongSound" src="assets/audio/Quiz-Wrong_Buzzer02-1.mp3"></audio>
+  <audio id="correctSound" src="assets/audio/correct1.mp3"></audio>
+  <audio id="wrongSound" src="assets/audio/Quiz-Wrong_Buzzer02-1.mp3"></audio>
 
-    <script>
-      let localConnection;
-      let ws;
-      const signalingServerUrl = "wss://hayaoshi-quiz-backend.onrender.com"; // シグナリングサーバーのURL
-      const buzzerButton = document.getElementById("buzzerButton");
-      const correctButton = document.getElementById("correctButton");
-      const wrongButton = document.getElementById("wrongButton");
-      const buzzerSound = document.getElementById("buzzerSound");
-      const correctSound = document.getElementById("correctSound");
-      const wrongSound = document.getElementById("wrongSound");
+  <script>
+    let ws;
+    let buzzerPressed = false; // 早押しボタンが押されたかどうかの状態
 
-      document
-        .getElementById("startButton")
-        .addEventListener("click", async () => {
-          localConnection = new RTCPeerConnection();
-
-          // WebSocket接続
-          ws = new WebSocket(signalingServerUrl);
-
-          ws.onopen = async () => {
-            console.log("WebSocket connection established.");
-
-            // Offerの作成と送信
-            const offer = await localConnection.createOffer();
-            await localConnection.setLocalDescription(offer);
-            ws.send(JSON.stringify({ offer }));
-          };
-
-          ws.onerror = (error) => {
-            console.log("WebSocket Error:", error);
-          };
-
-          ws.onmessage = async (message) => {
-            // Blobをテキストに変換してからJSONにパース
-            const blob = message.data;
-            const text = await blob.text();
-            const data = JSON.parse(text);
-
-            if (data.answer) {
-              await localConnection.setRemoteDescription(
-                new RTCSessionDescription(data.answer),
-              );
-              buzzerButton.disabled = false; // 子機と接続完了後に早押しボタンを有効にする
-            } else if (data.candidate) {
-              await localConnection.addIceCandidate(
-                new RTCIceCandidate(data.candidate),
-              );
-            }
-          };
-
-          localConnection.onicecandidate = (event) => {
-            if (event.candidate && ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ candidate: event.candidate }));
-            }
-          };
-        });
-
-      // 早押しボタンのイベント
-      buzzerButton.addEventListener("click", () => {
-        if (ws.readyState === WebSocket.OPEN) {
-          // WebSocketでメッセージ送信
-          ws.send("buzzer");
-          buzzerSound.play(); // 早押し音を鳴らす
+    document.getElementById("startConnection").onclick = () => {
+      ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
+      ws.onopen = () => {
+        document.getElementById("status").textContent = "接続成功";
+      };
+      ws.onmessage = (message) => {
+        const data = JSON.parse(message.data);
+        if (data.type === "buzzerPressed" && !buzzerPressed) {
+          buzzerPressed = true;
+          // 誰かが早押ししたらリセットするまで次の早押しは受け付けない
         }
-      });
+      };
+      ws.onclose = () => {
+        document.getElementById("status").textContent = "接続が閉じられました";
+      };
+    };
 
-      // 正解ボタン
-      correctButton.addEventListener("click", () => {
-        correctSound.play(); // 正解音を鳴らす
-      });
+    document.getElementById("correctButton").onclick = () => {
+      document.getElementById("correctSound").play();
+      buzzerPressed = false; // 正解の後にリセット
+    };
 
-      // 不正解ボタン
-      wrongButton.addEventListener("click", () => {
-        wrongSound.play(); // 不正解音を鳴らす
-      });
-    </script>
-  </body>
+    document.getElementById("wrongButton").onclick = () => {
+      document.getElementById("wrongSound").play();
+      buzzerPressed = false; // 不正解の後にリセット
+    };
+
+    document.getElementById("resetButton").onclick = () => {
+      buzzerPressed = false;
+      document.getElementById("status").textContent = "リセットしました";
+    };
+  </script>
+</body>
+
 </html>

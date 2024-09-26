@@ -2,58 +2,41 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>子機</title>
+    <title>早押しクイズ 子機</title>
   </head>
 
   <body>
-    <h1>子機</h1>
-    <button id="answerButton">早押しボタン</button>
+    <h1>早押しクイズ 子機</h1>
+    <button id="buzzerButton">早押しボタン</button>
+    <p id="status"></p>
+
+    <audio id="buzzerSound" src="assets/audio/Quiz-Buzzer02-1.mp3"></audio>
 
     <script>
-      const ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
+      let ws;
+      let buzzerPressed = false;
 
-      let localConnection;
-
+      // WebSocketの接続
+      ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
       ws.onopen = () => {
-        console.log("WebSocket connection established.");
+        document.getElementById("status").textContent = "接続成功";
       };
-
-      ws.onmessage = async (message) => {
-        const blob = message.data;
-        const text = await blob.text();
-        const data = JSON.parse(text);
-
-        if (data.offer) {
-          localConnection = new RTCPeerConnection();
-
-          localConnection.onicecandidate = (event) => {
-            if (event.candidate) {
-              ws.send(JSON.stringify({ candidate: event.candidate }));
-            }
-          };
-
-          await localConnection.setRemoteDescription(
-            new RTCSessionDescription(data.offer),
-          );
-          const answer = await localConnection.createAnswer();
-          await localConnection.setLocalDescription(answer);
-
-          ws.send(JSON.stringify({ answer: answer }));
-        } else if (data.candidate) {
-          await localConnection.addIceCandidate(
-            new RTCIceCandidate(data.candidate),
-          );
+      ws.onmessage = (message) => {
+        const data = JSON.parse(message.data);
+        if (data.type === "reset") {
+          buzzerPressed = false; // 親機側からリセットが送られたときにリセットする
         }
       };
+      ws.onclose = () => {
+        document.getElementById("status").textContent = "接続が閉じられました";
+      };
 
-      document.getElementById("answerButton").onclick = () => {
-        if (
-          localConnection &&
-          localConnection.connectionState === "connected"
-        ) {
-          const sendChannel = localConnection.createDataChannel("sendChannel");
-          sendChannel.send("button pressed");
+      // 早押しボタンの処理
+      document.getElementById("buzzerButton").onclick = () => {
+        if (!buzzerPressed) {
+          document.getElementById("buzzerSound").play();
+          buzzerPressed = true; // ボタンが押されたら状態を変更
+          ws.send(JSON.stringify({ type: "buzzerPressed" }));
         }
       };
     </script>
