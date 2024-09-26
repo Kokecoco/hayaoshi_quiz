@@ -1,44 +1,46 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <title>早押しクイズ 子機</title>
-  </head>
 
-  <body>
-    <h1>早押しクイズ 子機</h1>
-    <button id="buzzerButton">早押しボタン</button>
-    <p id="status"></p>
+<head>
+  <meta charset="UTF-8" />
+  <title>早押しクイズ 子機</title>
+</head>
 
-    <audio id="buzzerSound" src="assets/audio/Quiz-Buzzer02-1.mp3"></audio>
+<body>
+  <h1>早押しクイズ 子機</h1>
+  <button id="buzzerButton">早押しボタン</button>
+  <p id="status"></p>
 
-    <script>
-      let ws;
-      let buzzerPressed = false;
+  <audio id="buzzerSound" src="assets/audio/Quiz-Buzzer02-1.mp3"></audio>
 
-      // WebSocketの接続
-      ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
-      ws.onopen = () => {
-        document.getElementById("status").textContent = "接続成功";
-      };
-      ws.onmessage = (message) => {
-        const data = JSON.parse(message.data);
-        if (data.type === "reset") {
-          buzzerPressed = false; // 親機側からリセットが送られたときにリセットする
-        }
-      };
-      ws.onclose = () => {
-        document.getElementById("status").textContent = "接続が閉じられました";
-      };
+  <script>
+    let ws;
+    let buzzerPressed = false;
 
-      // 早押しボタンの処理
-      document.getElementById("buzzerButton").onclick = () => {
-        if (!buzzerPressed) {
-          document.getElementById("buzzerSound").play();
-          buzzerPressed = true; // ボタンが押されたら状態を変更
-          ws.send(JSON.stringify({ type: "buzzerPressed" }));
-        }
-      };
-    </script>
-  </body>
+    // WebSocketの接続
+    ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
+    ws.onopen = () => {
+      document.getElementById("status").textContent = "接続成功";
+    };
+    ws.onmessage = (message) => {
+      const data = JSON.parse(message.data);
+      if (data.type === "reset") {
+        buzzerPressed = false; // 親機側からリセットが送られたときにリセットする
+      }
+    };
+    ws.onclose = () => {
+      document.getElementById("status").textContent = "接続が閉じられました";
+    };
+
+    // 早押しボタンの処理
+    document.getElementById("buzzerButton").onclick = () => {
+      if (!buzzerPressed) {
+        document.getElementById("buzzerSound").play();
+        buzzerPressed = true; // ボタンが押されたら状態を変更
+        ws.send(JSON.stringify({type: "buzzerPressed"}));
+      }
+    };
+  </script>
+</body>
+
 </html>

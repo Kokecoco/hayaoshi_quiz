@@ -3,55 +3,64 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>早押しクイズ 親機</title>
 </head>
 
 <body>
   <h1>早押しクイズ 親機</h1>
   <button id="startConnection">接続開始</button>
-  <button id="correctButton">正解</button>
-  <button id="wrongButton">不正解</button>
-  <button id="resetButton">リセット</button>
-  <p id="status"></p>
+  <button id="correct">正解音</button>
+  <button id="wrong">不正解音</button>
 
-  <audio id="correctSound" src="assets/audio/correct1.mp3"></audio>
-  <audio id="wrongSound" src="assets/audio/Quiz-Wrong_Buzzer02-1.mp3"></audio>
+  <p id="connectionStatus">未接続</p>
+  <p id="buzzerInfo">誰も押していません</p>
 
   <script>
     let ws;
-    let buzzerPressed = false; // 早押しボタンが押されたかどうかの状態
+    let buzzerPressed = false;
 
-    document.getElementById("startConnection").onclick = () => {
-      ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
+    // WebSocket接続を開始
+    document.getElementById('startConnection').addEventListener('click', () => {
+      ws = new WebSocket('ws://hayaoshi-quiz-backend.onrender.com');
+
+      const connectionStatus = document.getElementById('connectionStatus');
+      const buzzerInfo = document.getElementById('buzzerInfo');
+
       ws.onopen = () => {
-        document.getElementById("status").textContent = "接続成功";
+        connectionStatus.textContent = "接続完了";
+        console.log("WebSocket connection established.");
       };
-      ws.onmessage = (message) => {
-        const data = JSON.parse(message.data);
-        if (data.type === "buzzerPressed" && !buzzerPressed) {
+
+      ws.onmessage = async (event) => {
+        const blob = event.data;
+        const text = await blob.text();  // Blobをテキストに変換
+        const data = JSON.parse(text);   // テキストをJSONに変換
+
+        if (data.type === 'buzzer' && !buzzerPressed) {
           buzzerPressed = true;
-          // 誰かが早押ししたらリセットするまで次の早押しは受け付けない
+          buzzerInfo.textContent = `${data.name} が早押ししました！`;
+          console.log(`${data.name} が早押ししました！`);
         }
       };
+
       ws.onclose = () => {
-        document.getElementById("status").textContent = "接続が閉じられました";
+        connectionStatus.textContent = "接続切断";
+        console.log("WebSocket connection closed.");
       };
-    };
+    });
 
-    document.getElementById("correctButton").onclick = () => {
-      document.getElementById("correctSound").play();
-      buzzerPressed = false; // 正解の後にリセット
-    };
+    // 正解音を再生
+    document.getElementById('correct').addEventListener('click', () => {
+      let audio = new Audio('assets/audio/correct1.mp3');
+      audio.play();
+    });
 
-    document.getElementById("wrongButton").onclick = () => {
-      document.getElementById("wrongSound").play();
-      buzzerPressed = false; // 不正解の後にリセット
-    };
-
-    document.getElementById("resetButton").onclick = () => {
-      buzzerPressed = false;
-      document.getElementById("status").textContent = "リセットしました";
-    };
+    // 不正解音を再生
+    document.getElementById('wrong').addEventListener('click', () => {
+      let audio = new Audio('assets/audio/Quiz-Wrong_Buzzer02-1.mp3');
+      audio.play();
+    });
   </script>
 </body>
 
