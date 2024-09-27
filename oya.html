@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>親機</title>
+    <title>苔式早押し機 親機</title>
     <link rel="stylesheet" href="assets/css/oya.css" />
   </head>
 
@@ -20,18 +20,19 @@
       const clientsDiv = document.getElementById("clients");
 
       ws.onopen = () => {
-        document.getElementById("status").textContent = "接続完了";
+        document.getElementById("status").textContent =
+          "サーバーに接続しました";
       };
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         console.log(data.type);
         if (data.type === "buzzer") {
-          clientsDiv.innerHTML = `<p>子機${data.name}が押しました！</p>`;
+          clientsDiv.innerHTML = `<p>${data.name}番が押しました！</p>`;
         } else if (data.type === "reset") {
-          clientsDiv.innerHTML = `<p>リセットされました。再度ボタンを押してください。</p>`;
+          clientsDiv.innerHTML = `<p>まだ誰も押していません</p>`;
         } else if (data.type === "newClient") {
-          clientsDiv.innerHTML = `<p>子機${data.name}が接続しました。</p>`;
+          clientsDiv.innerHTML = `<p>${data.name}番が接続しました。</p>`;
         }
       };
 

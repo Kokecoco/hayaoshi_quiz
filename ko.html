@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>子機</title>
+    <title>苔式早押し機 子機</title>
     <link rel="stylesheet" href="assets/css/ko.css" />
   </head>
 
@@ -11,14 +11,15 @@
     <h1>早押しクイズ 子機</h1>
     <div id="status">接続中...</div>
     <div id="clients">まだ誰も押していません</div>
-    <button id="buzzer">早押し</button>
+    <button id="buzzer">Slash！</button>
 
     <script>
       const buzzerButton = document.getElementById("buzzer");
       const ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
 
       ws.onopen = () => {
-        document.getElementById("status").textContent = "接続完了";
+        document.getElementById("status").textContent =
+          "サーバーに接続しました";
       };
 
       ws.onmessage = (event) => {
@@ -31,11 +32,11 @@
         } else if (data.type === "clientId") {
           buzzerButton.dataset.clientId = data.id; // クライアントIDを保存
           document.getElementById("status").textContent =
-            `\n子機${data.id}として接続しています。`;
+            `${data.id}番として接続しています。`;
           ws.send(JSON.stringify({ type: "newClient", name: data.id }));
         } else if (data.type === "buzzer") {
           document.getElementById("clients").textContent =
-            `子機${data.name}が押しました`;
+            `${data.name}番に押されました`;
           buzzerButton.disabled = true;
         }
       };
@@ -44,13 +45,21 @@
         const audio = new Audio("assets/audio/Quiz-Buzzer02-1.mp3");
         audio.play();
         const clientId = buzzerButton.dataset.clientId; // クライアントIDを取得
-        ws.send(JSON.stringify({ type: "buzzer", name: clientId })); // 自分の名前を送信
+        const timestamp = Date.now(); // 現在時刻のタイムスタンプを取得
+        ws.send(
+          JSON.stringify({
+            type: "buzzer",
+            name: clientId,
+            timestamp: timestamp,
+          }),
+        ); // 自分の名前とタイムスタンプを送信
         buzzerButton.disabled = true; // ボタンを無効化
         document.getElementById("clients").textContent = "あなたが押しました";
       });
 
       document.addEventListener("keydown", function (event) {
-        if (event.code === "Space") {
+        console.log(event.code);
+        if (event.code === "Space" || event.code === "Enter") {
           // スペースキーが押されたとき
           buzzerButton.click(); // ボタンをプログラムでクリック
         }
