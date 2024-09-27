@@ -42,10 +42,10 @@
       };
 
       buzzerButton.addEventListener("click", () => {
+        const timestamp = Date.now(); // 現在時刻のタイムスタンプを取得
         const audio = new Audio("assets/audio/Quiz-Buzzer02-1.mp3");
         audio.play();
         const clientId = buzzerButton.dataset.clientId; // クライアントIDを取得
-        const timestamp = Date.now(); // 現在時刻のタイムスタンプを取得
         ws.send(
           JSON.stringify({
             type: "buzzer",
