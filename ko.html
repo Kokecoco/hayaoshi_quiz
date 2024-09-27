@@ -27,7 +27,8 @@
           document.getElementById("client-info").textContent =
             `あなたの番号: 子機${clientId}`;
         } else if (data.type === "reset") {
-          buzzerPressed = false; // リセット時に再びボタンが押せるようにする
+          buzzerPressed = false;
+          document.getElementById("buzzer").disabled = false; // ボタンを有効化
         }
       };
 
@@ -35,7 +36,10 @@
         if (!buzzerPressed && ws.readyState === WebSocket.OPEN) {
           const buzzerData = { type: "buzzer", name: `子機${clientId}` };
           ws.send(JSON.stringify(buzzerData));
-          buzzerPressed = true;
+          buzzerPressed = true; // ボタンを押したことを記録
+          document.getElementById("buzzer").disabled = true; // ボタンを無効化
+
+          // 早押し音を鳴らす処理
           const audio = new Audio("assets/audio/Quiz-Buzzer02-1.mp3");
           audio.play();
         }
