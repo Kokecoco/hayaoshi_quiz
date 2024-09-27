@@ -1,0 +1,46 @@
+body {
+  font-family: "Arial", sans-serif;
+  background-color: #e0f7fa;
+  text-align: center;
+  margin: 0;
+  padding: 20px;
+}
+
+h1 {
+  color: #00796b;
+  font-size: 2em;
+  margin-bottom: 20px;
+}
+
+#status {
+  font-size: 1.2em;
+  color: #007bff;
+  margin-bottom: 20px;
+}
+
+#clients {
+  margin-bottom: 20px;
+  font-size: 1.1em;
+  color: #555;
+}
+
+button {
+  font-size: 1.5em;
+  padding: 15px 30px;
+  margin: 10px;
+  border: none;
+  border-radius: 5px;
+  background-color: #009688;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #00796b;
+}
+
+button:disabled {
+  background-color: #b0bec5;
+  cursor: not-allowed;
+}

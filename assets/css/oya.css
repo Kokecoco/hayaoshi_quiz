@@ -1,0 +1,45 @@
+body {
+  font-family: "Arial", sans-serif;
+  background-color: #f0f0f0;
+  text-align: center;
+  margin: 0;
+  padding: 20px;
+}
+
+h1 {
+  color: #333;
+  font-size: 2em;
+  margin-bottom: 20px;
+}
+
+#status {
+  font-size: 1.2em;
+  color: #007bff;
+  margin-bottom: 20px;
+}
+
+#clients {
+  margin-bottom: 20px;
+  font-size: 1.1em;
+  color: #555;
+}
+
+button {
+  font-size: 1.2em;
+  padding: 10px 20px;
+  margin: 10px;
+  border: none;
+  border-radius: 5px;
+  background-color: #007bff;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+button:active {
+  background-color: #004080;
+}
