@@ -7,42 +7,32 @@
   </head>
 
   <body>
-    <h1>早押しボタン</h1>
-    <div id="client-info">接続中...</div>
-    <button id="buzzer">早押しボタン</button>
+    <h1>早押しクイズ 子機</h1>
+    <div id="status">接続中...</div>
+    <button id="buzzer">早押し</button>
 
     <script>
-      let clientId;
-      let buzzerPressed = false;
       const ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
 
       ws.onopen = () => {
-        console.log("WebSocket connection established.");
+        document.getElementById("status").textContent = "接続完了";
       };
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (data.type === "clientId") {
-          clientId = data.id;
-          document.getElementById("client-info").textContent =
-            `あなたの番号: 子機${clientId}`;
-        } else if (data.type === "reset") {
-          buzzerPressed = false;
-          document.getElementById("buzzer").disabled = false; // ボタンを有効化
+        if (data.type === "reset") {
+          document.getElementById("buzzer").disabled = false; // ボタンを復活させる
+        } else if (data.type === "newClient") {
+          document.getElementById("buzzer").dataset.clientId = data.clientId; // クライアントIDを保存
         }
       };
 
       document.getElementById("buzzer").addEventListener("click", () => {
-        if (!buzzerPressed && ws.readyState === WebSocket.OPEN) {
-          const buzzerData = { type: "buzzer", name: `子機${clientId}` };
-          ws.send(JSON.stringify(buzzerData));
-          buzzerPressed = true; // ボタンを押したことを記録
-          document.getElementById("buzzer").disabled = true; // ボタンを無効化
-
-          // 早押し音を鳴らす処理
-          const audio = new Audio("assets/audio/Quiz-Buzzer02-1.mp3");
-          audio.play();
-        }
+        const audio = new Audio("assets/audio/Quiz-Buzzer02-1.mp3");
+        audio.play();
+        const clientId = document.getElementById("buzzer").dataset.clientId; // クライアントIDを取得
+        ws.send(JSON.stringify({ type: "buzzer", name: clientId })); // 自分の名前を送信
+        document.getElementById("buzzer").disabled = true; // ボタンを無効化
       });
     </script>
   </body>

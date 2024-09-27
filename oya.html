@@ -1,59 +1,50 @@
 <!doctype html>
-<html>
+<html lang="ja">
   <head>
-    <title>早押しクイズ 親機</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>親機</title>
   </head>
 
   <body>
     <h1>早押しクイズ 親機</h1>
-    <button id="correctButton">正解音を鳴らす</button>
-    <button id="incorrectButton">不正解音を鳴らす</button>
-    <button id="resetButton">リセット</button>
-    <div id="status"></div>
-
-    <audio id="correctSound" src="assets/audio/correct1.mp3"></audio>
-    <audio
-      id="incorrectSound"
-      src="assets/audio/Quiz-Wrong_Buzzer02-1.mp3"
-    ></audio>
+    <div id="status">接続中...</div>
+    <div id="clients">参加者:</div>
+    <button id="correct">正解</button>
+    <button id="wrong">不正解</button>
 
     <script>
-      const statusDiv = document.getElementById("status");
-      const correctButton = document.getElementById("correctButton");
-      const incorrectButton = document.getElementById("incorrectButton");
-      const resetButton = document.getElementById("resetButton");
-      const correctSound = document.getElementById("correctSound");
-      const incorrectSound = document.getElementById("incorrectSound");
       const ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
 
-      let firstPress = true; // 最初の押下フラグ
-
-      ws.onopen = function () {
-        statusDiv.innerHTML = "接続完了";
+      ws.onopen = () => {
+        document.getElementById("status").textContent = "接続完了";
       };
 
-      ws.onmessage = function (event) {
+      ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (data.type === "buttonPress" && firstPress) {
-          statusDiv.innerHTML = `押した人: ${data.clientId}`;
-          firstPress = false; // 最初の押下を記録
+        if (data.type === "buzzer") {
+          const clientsDiv = document.getElementById("clients");
+          clientsDiv.innerHTML += `<p>${data.name} が押しました！</p>`;
+          // リセットメッセージを送信
+          ws.send(JSON.stringify({ type: "reset" }));
+        } else if (data.type === "reset") {
+          const clientsDiv = document.getElementById("clients");
+          clientsDiv.innerHTML += `<p>リセットされました。再度ボタンを押してください。</p>`;
+        } else if (data.type === "newClient") {
+          const clientsDiv = document.getElementById("clients");
+          clientsDiv.innerHTML += `<p>${data.name} が接続しました。</p>`;
         }
       };
 
-      correctButton.onclick = function () {
-        ws.send(JSON.stringify({ type: "correct" }));
-        correctSound.play(); // 正解音を鳴らす
-      };
+      document.getElementById("correct").addEventListener("click", () => {
+        const audio = new Audio("assets/audio/correct1.mp3");
+        audio.play();
+      });
 
-      incorrectButton.onclick = function () {
-        ws.send(JSON.stringify({ type: "incorrect" }));
-        incorrectSound.play(); // 不正解音を鳴らす
-      };
-
-      resetButton.onclick = function () {
-        firstPress = true; // 押下フラグをリセット
-        statusDiv.innerHTML = "リセットされました。"; // ステータスを更新
-      };
+      document.getElementById("wrong").addEventListener("click", () => {
+        const audio = new Audio("assets/audio/Quiz-Wrong_Buzzer02-1.mp3");
+        audio.play();
+      });
     </script>
   </body>
 </html>
