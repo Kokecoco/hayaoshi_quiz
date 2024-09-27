@@ -12,6 +12,7 @@
     <div id="clients"></div>
     <button id="correct">正解</button>
     <button id="wrong">不正解</button>
+    <button id="through">スルー</button>
 
     <script>
       const ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
@@ -43,6 +44,10 @@
       document.getElementById("wrong").addEventListener("click", () => {
         const audio = new Audio("assets/audio/Quiz-Wrong_Buzzer02-1.mp3");
         audio.play();
+        ws.send(JSON.stringify({ type: "reset" }));
+      });
+
+      document.getElementById("through").addEventListener("click", () => {
         ws.send(JSON.stringify({ type: "reset" }));
       });
     </script>
