@@ -25,8 +25,6 @@
         if (data.type === "buzzer") {
           const clientsDiv = document.getElementById("clients");
           clientsDiv.innerHTML = `<p>子機${data.name}が押しました！</p>`;
-          // リセットメッセージを送信
-          ws.send(JSON.stringify({ type: "reset" }));
         } else if (data.type === "reset") {
           const clientsDiv = document.getElementById("clients");
           clientsDiv.innerHTML = `<p>リセットされました。再度ボタンを押してください。</p>`;
@@ -39,11 +37,13 @@
       document.getElementById("correct").addEventListener("click", () => {
         const audio = new Audio("assets/audio/correct1.mp3");
         audio.play();
+        ws.send(JSON.stringify({ type: "reset" }));
       });
 
       document.getElementById("wrong").addEventListener("click", () => {
         const audio = new Audio("assets/audio/Quiz-Wrong_Buzzer02-1.mp3");
         audio.play();
+        ws.send(JSON.stringify({ type: "reset" }));
       });
     </script>
   </body>
