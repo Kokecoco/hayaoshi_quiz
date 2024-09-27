@@ -24,7 +24,7 @@
           document.getElementById("buzzer").disabled = false; // ボタンを復活させる
         } else if (data.type === "clientId") {
           document.getElementById("buzzer").dataset.clientId = data.id; // クライアントIDを保存
-          document.getElementById("status").textContent +=
+          document.getElementById("status").textContent =
             `\n子機${data.id}として接続しています。`;
         }
       };

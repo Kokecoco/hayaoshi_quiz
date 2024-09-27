@@ -24,7 +24,7 @@
         const data = JSON.parse(event.data);
         if (data.type === "buzzer") {
           const clientsDiv = document.getElementById("clients");
-          clientsDiv.innerHTML = `<p>子機${data.name} が押しました！</p>`;
+          clientsDiv.innerHTML = `<p>子機${data.name}が押しました！</p>`;
           // リセットメッセージを送信
           ws.send(JSON.stringify({ type: "reset" }));
         } else if (data.type === "reset") {
@@ -32,7 +32,7 @@
           clientsDiv.innerHTML = `<p>リセットされました。再度ボタンを押してください。</p>`;
         } else if (data.type === "clientId") {
           const clientsDiv = document.getElementById("clients");
-          clientsDiv.innerHTML = `<p>子機${data.name} が接続しました。</p>`;
+          clientsDiv.innerHTML = `<p>子機${data.id}が接続しました。</p>`;
         }
       };
 
