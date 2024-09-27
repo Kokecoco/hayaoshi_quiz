@@ -9,6 +9,7 @@
   <body>
     <h1>早押しクイズ 子機</h1>
     <div id="status">接続中...</div>
+    <div id="clients"></div>
     <button id="buzzer">早押し</button>
 
     <script>
@@ -27,6 +28,10 @@
           document.getElementById("status").textContent =
             `\n子機${data.id}として接続しています。`;
           ws.send(JSON.stringify({ type: "newClient", name: data.id }));
+        } else if (data.type === "buzzer") {
+          document.getElementById("clients").textContent =
+            `子機${data.name}が押しました`;
+          document.getElementById("buzzer").disabled = true;
         }
       };
 
