@@ -26,6 +26,7 @@
           document.getElementById("buzzer").dataset.clientId = data.id; // クライアントIDを保存
           document.getElementById("status").textContent =
             `\n子機${data.id}として接続しています。`;
+          ws.send(JSON.stringify({ type: "newClient", name: data.id }));
         }
       };
 
