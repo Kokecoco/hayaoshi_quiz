@@ -22,8 +22,8 @@
         const data = JSON.parse(event.data);
         if (data.type === "reset") {
           document.getElementById("buzzer").disabled = false; // ボタンを復活させる
-        } else if (data.type === "newClient") {
-          document.getElementById("buzzer").dataset.clientId = data.clientId; // クライアントIDを保存
+        } else if (data.type === "clientId") {
+          document.getElementById("buzzer").dataset.clientId = data.id; // クライアントIDを保存
         }
       };
 
