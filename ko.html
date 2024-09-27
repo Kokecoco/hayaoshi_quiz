@@ -44,6 +44,7 @@
         const clientId = document.getElementById("buzzer").dataset.clientId; // クライアントIDを取得
         ws.send(JSON.stringify({ type: "buzzer", name: clientId })); // 自分の名前を送信
         document.getElementById("buzzer").disabled = true; // ボタンを無効化
+        document.getElementById("clients").textContent = "あなたが押しました";
       });
     </script>
   </body>
