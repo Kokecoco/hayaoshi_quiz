@@ -1,46 +1,45 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>子機</title>
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <title>早押しクイズ 子機</title>
-</head>
+  <body>
+    <h1>早押しボタン</h1>
+    <div id="client-info">接続中...</div>
+    <button id="buzzer">早押しボタン</button>
 
-<body>
-  <h1>早押しクイズ 子機</h1>
-  <button id="buzzerButton">早押しボタン</button>
-  <p id="status"></p>
+    <script>
+      let clientId;
+      let buzzerPressed = false;
+      const ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
 
-  <audio id="buzzerSound" src="assets/audio/Quiz-Buzzer02-1.mp3"></audio>
+      ws.onopen = () => {
+        console.log("WebSocket connection established.");
+      };
 
-  <script>
-    let ws;
-    let buzzerPressed = false;
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "clientId") {
+          clientId = data.id;
+          document.getElementById("client-info").textContent =
+            `あなたの番号: 子機${clientId}`;
+        } else if (data.type === "reset") {
+          buzzerPressed = false; // リセット時に再びボタンが押せるようにする
+        }
+      };
 
-    // WebSocketの接続
-    ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
-    ws.onopen = () => {
-      document.getElementById("status").textContent = "接続成功";
-    };
-    ws.onmessage = (message) => {
-      const data = JSON.parse(message.data);
-      if (data.type === "reset") {
-        buzzerPressed = false; // 親機側からリセットが送られたときにリセットする
-      }
-    };
-    ws.onclose = () => {
-      document.getElementById("status").textContent = "接続が閉じられました";
-    };
-
-    // 早押しボタンの処理
-    document.getElementById("buzzerButton").onclick = () => {
-      if (!buzzerPressed) {
-        document.getElementById("buzzerSound").play();
-        buzzerPressed = true; // ボタンが押されたら状態を変更
-        ws.send(JSON.stringify({type: "buzzerPressed"}));
-      }
-    };
-  </script>
-</body>
-
+      document.getElementById("buzzer").addEventListener("click", () => {
+        if (!buzzerPressed && ws.readyState === WebSocket.OPEN) {
+          const buzzerData = { type: "buzzer", name: `子機${clientId}` };
+          ws.send(JSON.stringify(buzzerData));
+          buzzerPressed = true;
+          const audio = new Audio("assets/audio/Quiz-Buzzer02-1.mp3");
+          audio.play();
+        }
+      });
+    </script>
+  </body>
 </html>

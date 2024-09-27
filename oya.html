@@ -3,64 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>早押しクイズ 親機</title>
+    <title>親機</title>
   </head>
 
   <body>
-    <h1>早押しクイズ 親機</h1>
-    <button id="startConnection">接続開始</button>
-    <button id="correct">正解音</button>
-    <button id="wrong">不正解音</button>
-
-    <p id="connectionStatus">未接続</p>
-    <p id="buzzerInfo">誰も押していません</p>
+    <h1>早押しクイズ</h1>
+    <div id="status">接続していません</div>
+    <div id="buzzer-info"></div>
+    <button id="correct-sound">正解音を鳴らす</button>
+    <button id="wrong-sound">不正解音を鳴らす</button>
+    <button id="reset">リセット</button>
 
     <script>
-      let ws;
-      let buzzerPressed = false;
+      const ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
+      const statusDiv = document.getElementById("status");
+      const buzzerInfo = document.getElementById("buzzer-info");
 
-      // WebSocket接続を開始
-      document
-        .getElementById("startConnection")
-        .addEventListener("click", () => {
-          ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
+      ws.onopen = () => {
+        statusDiv.textContent = "接続完了";
+      };
 
-          const connectionStatus = document.getElementById("connectionStatus");
-          const buzzerInfo = document.getElementById("buzzerInfo");
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "buzzer") {
+          buzzerInfo.textContent = `${data.name} がボタンを押しました！`;
+        } else if (data.type === "reset") {
+          buzzerInfo.textContent =
+            "リセットされました。新しい早押しが可能です。";
+        }
+      };
 
-          ws.onopen = () => {
-            connectionStatus.textContent = "接続完了";
-            console.log("WebSocket connection established.");
-          };
-
-          ws.onmessage = async (event) => {
-            const blob = event.data;
-            const text = await blob.text(); // Blobをテキストに変換
-            const data = JSON.parse(text); // テキストをJSONに変換
-
-            if (data.type === "buzzer" && !buzzerPressed) {
-              buzzerPressed = true;
-              buzzerInfo.textContent = `${data.name} が早押ししました！`;
-              console.log(`${data.name} が早押ししました！`);
-            }
-          };
-
-          ws.onclose = () => {
-            connectionStatus.textContent = "接続切断";
-            console.log("WebSocket connection closed.");
-          };
-        });
-
-      // 正解音を再生
-      document.getElementById("correct").addEventListener("click", () => {
-        let audio = new Audio("assets/audio/correct1.mp3");
+      document.getElementById("correct-sound").addEventListener("click", () => {
+        const audio = new Audio("assets/audio/correct1.mp3");
         audio.play();
       });
 
-      // 不正解音を再生
-      document.getElementById("wrong").addEventListener("click", () => {
-        let audio = new Audio("assets/audio/Quiz-Wrong_Buzzer02-1.mp3");
+      document.getElementById("wrong-sound").addEventListener("click", () => {
+        const audio = new Audio("assets/audio/Quiz-Wrong_Buzzer02-1.mp3");
         audio.play();
+      });
+
+      document.getElementById("reset").addEventListener("click", () => {
+        ws.send(JSON.stringify({ type: "reset" }));
       });
     </script>
   </body>
