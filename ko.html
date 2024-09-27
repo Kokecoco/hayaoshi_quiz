@@ -9,7 +9,7 @@
   <body>
     <h1>早押しクイズ 子機</h1>
     <div id="status">接続中...</div>
-    <div id="clients"></div>
+    <div id="clients">まだ誰も押していません</div>
     <button id="buzzer">早押し</button>
 
     <script>
@@ -21,8 +21,11 @@
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        console.log(data.type);
         if (data.type === "reset") {
           document.getElementById("buzzer").disabled = false; // ボタンを復活させる
+          document.getElementById("clients").textContent =
+            "まだ誰も押していません";
         } else if (data.type === "clientId") {
           document.getElementById("buzzer").dataset.clientId = data.id; // クライアントIDを保存
           document.getElementById("status").textContent =

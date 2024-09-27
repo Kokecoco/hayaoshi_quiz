@@ -23,6 +23,7 @@
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        console.log(data.type);
         if (data.type === "buzzer") {
           const clientsDiv = document.getElementById("clients");
           clientsDiv.innerHTML = `<p>子機${data.name}が押しました！</p>`;
