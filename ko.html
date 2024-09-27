@@ -13,6 +13,7 @@
     <button id="buzzer">早押し</button>
 
     <script>
+      const buzzerButton = document.getElementById("buzzer");
       const ws = new WebSocket("wss://hayaoshi-quiz-backend.onrender.com");
 
       ws.onopen = () => {
@@ -23,28 +24,35 @@
         const data = JSON.parse(event.data);
         console.log(data.type);
         if (data.type === "reset") {
-          document.getElementById("buzzer").disabled = false; // ボタンを復活させる
+          buzzerButton.disabled = false; // ボタンを復活させる
           document.getElementById("clients").textContent =
             "まだ誰も押していません";
         } else if (data.type === "clientId") {
-          document.getElementById("buzzer").dataset.clientId = data.id; // クライアントIDを保存
+          buzzerButton.dataset.clientId = data.id; // クライアントIDを保存
           document.getElementById("status").textContent =
             `\n子機${data.id}として接続しています。`;
           ws.send(JSON.stringify({ type: "newClient", name: data.id }));
         } else if (data.type === "buzzer") {
           document.getElementById("clients").textContent =
             `子機${data.name}が押しました`;
-          document.getElementById("buzzer").disabled = true;
+          buzzerButton.disabled = true;
         }
       };
 
-      document.getElementById("buzzer").addEventListener("click", () => {
+      buzzerButton.addEventListener("click", () => {
         const audio = new Audio("assets/audio/Quiz-Buzzer02-1.mp3");
         audio.play();
-        const clientId = document.getElementById("buzzer").dataset.clientId; // クライアントIDを取得
+        const clientId = buzzerButton.dataset.clientId; // クライアントIDを取得
         ws.send(JSON.stringify({ type: "buzzer", name: clientId })); // 自分の名前を送信
-        document.getElementById("buzzer").disabled = true; // ボタンを無効化
+        buzzerButton.disabled = true; // ボタンを無効化
         document.getElementById("clients").textContent = "あなたが押しました";
+      });
+
+      document.addEventListener("keydown", function (event) {
+        if (event.code === "Space") {
+          // スペースキーが押されたとき
+          buzzerButton.click(); // ボタンをプログラムでクリック
+        }
       });
     </script>
   </body>
